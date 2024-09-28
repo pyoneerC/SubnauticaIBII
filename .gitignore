@@ -6,3 +6,4 @@
 *.csproj
 /.idea
 /obj
+*.meta
