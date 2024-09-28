@@ -110,11 +110,11 @@ public class Raycast : MonoBehaviour
     /// <param name="itemCollider">The collider of the item to pick up.</param>
     private void PickUpItem(Collider itemCollider)
     {
+        Destroy(itemCollider.gameObject);
+
         itemCount++;
         equipmentCount.text = itemCount.ToString();
         UpdateEquipmentCountColor();  // Update color based on item count
-
-        Destroy(itemCollider.gameObject);
 
         // Update the equipment UI based on the item picked up
         foreach (Transform child in itemCollider.transform)
