@@ -6,6 +6,13 @@ TagManager:
   tags:
   - EPP
   - knife
+  - oxygenTank
+  - feet
+  - weight
+  - body
+  - oxygenTankCharge
+  - breather
+  - goggles
   layers:
   - Default
   - TransparentFX
