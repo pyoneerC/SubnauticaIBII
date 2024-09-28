@@ -17,7 +17,7 @@ public class Raycast : MonoBehaviour
     /// <summary>
     /// The maximum distance for item pickup raycasting.
     /// </summary>
-    public float rayDistance = 3f;
+    public float rayDistance = 2f;
 
     /// <summary>
     /// The current count of items collected.
@@ -61,6 +61,9 @@ public class Raycast : MonoBehaviour
     public Image weightR;
     public Image gogglesRight;
     public Image gogglesLeft;
+    public Image reticle;
+
+    public TextMeshProUGUI helptext;
 
     /// <summary>
     /// Text element showing the current count of collected items.
@@ -68,13 +71,73 @@ public class Raycast : MonoBehaviour
     public TextMeshProUGUI equipmentCount;
 
     private bool _isCountingDown;
+    private bool _isStaringAtItem;
+
+    private Color _reticleOriginalColor;
+
+    /// <summary>
+    /// Target size for the reticle when looking at an item.
+    /// </summary>
+    private readonly Vector2 _enlargedSize = new(100f, 100f);
+
+    /// <summary>
+    /// Original size of the reticle.
+    /// </summary>
+    private readonly Vector2 _originalSize = new(50f, 50f);
+
+    private const float ReticleAnimationSpeed = 5f;
+    private const float AnimationSpeed = 5f;
+    private const float HelpTextDelay = 0.5f; // Time to stare at the item before showing help text
+
+    private void Start()
+    {
+        // Store the original color of the reticle
+        _reticleOriginalColor = reticle.color;
+        helptext.color = new Color(helptext.color.r, helptext.color.g, helptext.color.b, 0f); // Initially hidden
+    }
 
     private void Update()
     {
+        CheckForPickupTarget();
+
         // Check for interaction input to pick up items
         if (Input.GetKeyDown(KeyCode.E) && !_isCountingDown)
         {
             StartCoroutine(TryPickUpItem());
+        }
+
+        // Handle fading of help text based on reticle color
+        if (_isStaringAtItem && reticle.color == Color.green)
+        {
+            ShowHelpText();
+        }
+        else
+        {
+            FadeOutHelpText(1f);
+        }
+    }
+
+    /// <summary>
+    /// Checks if the player is aiming at an item that can be picked up and updates the reticle color accordingly.
+    /// </summary>
+    private void CheckForPickupTarget()
+    {
+        Ray ray = mainCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0));
+
+        // Cast a ray and check if it hits an object tagged as "EPP"
+        if (Physics.Raycast(ray, out var hit, rayDistance) && hit.collider.CompareTag("EPP"))
+        {
+            // Animate the reticle to grow in size and change color to green
+            _isStaringAtItem = true; // Set staring flag
+            reticle.color = Color.Lerp(reticle.color, Color.green, Time.deltaTime * ReticleAnimationSpeed);
+            reticle.rectTransform.sizeDelta = Vector2.Lerp(reticle.rectTransform.sizeDelta, _enlargedSize, Time.deltaTime * AnimationSpeed);
+        }
+        else
+        {
+            // Animate the reticle to shrink back to its original size and reset the color
+            _isStaringAtItem = false; // Reset staring flag
+            reticle.color = Color.Lerp(reticle.color, _reticleOriginalColor, Time.deltaTime * ReticleAnimationSpeed);
+            reticle.rectTransform.sizeDelta = Vector2.Lerp(reticle.rectTransform.sizeDelta, _originalSize, Time.deltaTime * AnimationSpeed);
         }
     }
 
@@ -188,18 +251,68 @@ public class Raycast : MonoBehaviour
     }
 
     /// <summary>
-    /// Plays the specified audio clip if the audio source is assigned.
+    /// Shows the help text if the player has been staring at an item for longer than the specified delay.
+    /// </summary>
+    private void ShowHelpText()
+    {
+        StartCoroutine(ShowHelpTextCoroutine());
+    }
+
+    private IEnumerator ShowHelpTextCoroutine()
+    {
+        float timer = 0f;
+        float fadeDuration = 0.5f; // Duration for the fade in/out effect
+
+        // Start with the help text invisible
+        helptext.color = new Color(helptext.color.r, helptext.color.g, helptext.color.b, 0f);
+
+        while (_isStaringAtItem && reticle.color == Color.green)
+        {
+            timer += Time.deltaTime;
+
+            if (timer >= HelpTextDelay)
+            {
+                // Fade in the help text
+                float alpha = Mathf.Clamp01((timer - HelpTextDelay) / fadeDuration);
+                helptext.color = new Color(helptext.color.r, helptext.color.g, helptext.color.b, alpha);
+            }
+
+            yield return null;
+        }
+
+        // Fade out if not staring at the item
+        StartCoroutine(FadeOutHelpText(fadeDuration));
+    }
+
+    /// <summary>
+    /// Fades out the help text if the player is not staring at the item.
+    /// </summary>
+    /// <param name="duration">Duration for the fade out effect.</param>
+    private IEnumerator FadeOutHelpText(float duration)
+    {
+        float elapsedTime = 0f;
+        Color currentColor = helptext.color;
+
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float alpha = Mathf.Clamp01(1 - (elapsedTime / duration)); // Fade out
+            helptext.color = new Color(currentColor.r, currentColor.g, currentColor.b, alpha);
+            yield return null;
+        }
+
+        // Ensure the help text is completely transparent at the end
+        helptext.color = new Color(currentColor.r, currentColor.g, currentColor.b, 0f);
+    }
+
+
+    /// <summary>
+    /// Plays the specified sound effect.
     /// </summary>
     /// <param name="clip">The audio clip to play.</param>
     private void PlaySound(AudioClip clip)
     {
-        if (audioSource != null && clip != null)
-        {
-            audioSource.PlayOneShot(clip);
-        }
-        else
-        {
-            Debug.LogWarning("Audio source or clip is not assigned.");
-        }
+        audioSource.clip = clip;
+        audioSource.Play();
     }
 }
