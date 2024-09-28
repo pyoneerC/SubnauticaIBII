@@ -4,3 +4,5 @@
 /UserSettings
 /Logs
 *.csproj
+/.idea
+/obj
