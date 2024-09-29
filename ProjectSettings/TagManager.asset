@@ -13,6 +13,7 @@ TagManager:
   - oxygenTankCharge
   - breather
   - goggles
+  - Sea
   layers:
   - Default
   - TransparentFX
