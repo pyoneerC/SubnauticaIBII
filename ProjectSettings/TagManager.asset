@@ -14,6 +14,8 @@ TagManager:
   - breather
   - goggles
   - Sea
+  - Leak
+  - welder
   layers:
   - Default
   - TransparentFX
